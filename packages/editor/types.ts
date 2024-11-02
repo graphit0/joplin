@@ -30,6 +30,8 @@ export enum EditorCommandType {
 	ToggleHeading4 = 'textHeading4',
 	ToggleHeading5 = 'textHeading5',
 
+	InsertHorizontalRule = 'textHorizontalRule',
+
 	// Find commands
 	ShowSearch = 'find',
 	HideSearch = 'hideSearchDialog',
@@ -85,6 +87,11 @@ export interface ContentScriptData {
 	postMessageHandler: (message: any)=> any;
 }
 
+// Intended to correspond with https://codemirror.net/docs/ref/#state.Transaction%5EuserEvent
+export enum UserEventSource {
+	Paste = 'input.paste',
+}
+
 export interface EditorControl {
 	supportsCommand(name: EditorCommandType|string): boolean|Promise<boolean>;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -98,7 +105,7 @@ export interface EditorControl {
 	// 0 corresponds to the top, 1 corresponds to the bottom.
 	setScrollPercent(fraction: number): void;
 
-	insertText(text: string): void;
+	insertText(text: string, source?: UserEventSource): void;
 	updateBody(newBody: string): void;
 
 	updateSettings(newSettings: EditorSettings): void;
@@ -145,6 +152,7 @@ export interface EditorSettings {
 	useExternalSearch: boolean;
 
 	automatchBraces: boolean;
+	autocompleteMarkup: boolean;
 
 	// True if internal command keyboard shortcuts should be ignored (thus
 	// allowing Joplin shortcuts to run).
@@ -163,11 +171,22 @@ export interface EditorSettings {
 
 export type LogMessageCallback = (message: string)=> void;
 export type OnEventCallback = (event: EditorEvent)=> void;
+export type PasteFileCallback = (data: File)=> Promise<void>;
+type OnScrollPastBeginningCallback = ()=> void;
+
+interface Localisations {
+	[editorString: string]: string;
+}
 
 export interface EditorProps {
 	settings: EditorSettings;
 	initialText: string;
+	// Used mostly for internal editor library strings
+	localisations?: Localisations;
 
+	// If null, paste and drag-and-drop will not work for resources unless handled elsewhere.
+	onPasteFile: PasteFileCallback|null;
+	onSelectPastBeginning?: OnScrollPastBeginningCallback;
 	onEvent: OnEventCallback;
 	onLogMessage: LogMessageCallback;
 }

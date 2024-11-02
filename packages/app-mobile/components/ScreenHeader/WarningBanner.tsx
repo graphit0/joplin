@@ -6,6 +6,8 @@ import { _ } from '@joplin/lib/locale';
 import { showMissingMasterKeyMessage } from '@joplin/lib/services/e2ee/utils';
 import { localSyncInfoFromState } from '@joplin/lib/services/synchronizer/syncInfoUtils';
 import Setting from '@joplin/lib/models/Setting';
+import { ShareInvitation, ShareUserStatus } from '@joplin/lib/services/share/reducer';
+import { substrWithEllipsis } from '@joplin/lib/string-utils';
 
 interface Props {
 	themeId: number;
@@ -15,6 +17,9 @@ interface Props {
 	showShouldUpgradeSyncTargetMessage: boolean|undefined;
 	hasDisabledEncryptionItems: boolean;
 	mustUpgradeAppMessage: string;
+	shareInvitations: ShareInvitation[];
+	processingShareInvitationResponse: boolean;
+	showInvalidJoplinCloudCredential: boolean;
 }
 
 
@@ -46,6 +51,25 @@ export const WarningBannerComponent: React.FC<Props> = props => {
 	if (props.hasDisabledEncryptionItems) {
 		warningComps.push(renderWarningBox('Status', _('Some items cannot be decrypted.')));
 	}
+	if (props.showInvalidJoplinCloudCredential) {
+		warningComps.push(renderWarningBox('JoplinCloudLogin', _('Your Joplin Cloud credentials are invalid, please login.')));
+	}
+
+	const shareInvitation = props.shareInvitations.find(inv => inv.status === ShareUserStatus.Waiting);
+	if (
+		!props.processingShareInvitationResponse
+		&& !!shareInvitation
+	) {
+		const invitation = props.shareInvitations.find(inv => inv.status === ShareUserStatus.Waiting);
+		const sharer = invitation.share.user;
+
+		warningComps.push(renderWarningBox(
+			'ShareManager',
+			_('%s (%s) would like to share a notebook with you.',
+				substrWithEllipsis(sharer?.full_name ?? 'Unknown', 0, 48),
+				substrWithEllipsis(sharer?.email ?? 'Unknown', 0, 52)),
+		));
+	}
 
 	return warningComps;
 };
@@ -63,5 +87,8 @@ export default connect((state: AppState) => {
 		hasDisabledSyncItems: state.hasDisabledSyncItems,
 		shouldUpgradeSyncTarget: state.settings['sync.upgradeState'] === Setting.SYNC_UPGRADE_STATE_SHOULD_DO,
 		mustUpgradeAppMessage: state.mustUpgradeAppMessage,
+		shareInvitations: state.shareService.shareInvitations,
+		processingShareInvitationResponse: state.shareService.processingShareInvitationResponse,
+		showInvalidJoplinCloudCredential: state.settings['sync.target'] === 10 && state.mustAuthenticate,
 	};
 })(WarningBannerComponent);

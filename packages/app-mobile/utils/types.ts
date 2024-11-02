@@ -1,7 +1,6 @@
 import { State } from '@joplin/lib/reducer';
 
 export interface AppState extends State {
-	sideMenuOpenPercent: number;
 	showPanelsDialog: boolean;
 	isOnMobileData: boolean;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -10,5 +9,4 @@ export interface AppState extends State {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	noteSideMenuOptions: any;
 	disableSideMenuGestures: boolean;
-	themeId: number;
 }

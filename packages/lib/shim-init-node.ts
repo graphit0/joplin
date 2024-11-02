@@ -9,12 +9,13 @@ import * as fs from 'fs-extra';
 import * as pdfJsNamespace from 'pdfjs-dist';
 import { writeFile } from 'fs/promises';
 import { ResourceEntity } from './services/database/types';
-import { DownloadController } from './downloadController';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 import replaceUnsupportedCharacters from './utils/replaceUnsupportedCharacters';
+import { FetchBlobOptions } from './types';
+import crypto from './services/e2ee/crypto';
 
-const { FileApiDriverLocal } = require('./file-api-driver-local');
-const mimeUtils = require('./mime-utils.js').mime;
+import FileApiDriverLocal from './file-api-driver-local';
+import * as mimeUtils from './mime-utils';
 const { _ } = require('./locale');
 const http = require('http');
 const https = require('https');
@@ -26,16 +27,6 @@ const dgram = require('dgram');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const proxySettings: any = {};
-
-type FetchBlobOptions = {
-	path?: string;
-	method?: string;
-	maxRedirects?: number;
-	timeout?: number;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
-	headers?: any;
-	downloadController?: DownloadController;
-};
 
 function fileExists(filePath: string) {
 	try {
@@ -145,6 +136,7 @@ function shimInit(options: ShimInitOptions = null) {
 	shim.Geolocation = GeolocationNode;
 	shim.FormData = require('form-data');
 	shim.sjclModule = require('./vendor/sjcl.js');
+	shim.crypto = crypto;
 	shim.electronBridge_ = options.electronBridge;
 
 	shim.fsDriver = () => {
@@ -228,8 +220,8 @@ function shimInit(options: ShimInitOptions = null) {
 			image.src = filePath;
 			await new Promise<void>((resolve, reject) => {
 				image.onload = () => resolve();
-				image.onerror = () => reject(`Image at ${filePath} failed to load.`);
-				image.onabort = () => reject(`Loading stopped for image at ${filePath}.`);
+				image.onerror = () => reject(new Error(`Image at ${filePath} failed to load.`));
+				image.onabort = () => reject(new Error(`Loading stopped for image at ${filePath}.`));
 			});
 			if (!image.complete || (image.width === 0 && image.height === 0)) {
 				throw new Error(`Image is invalid or does not exist: ${filePath}`);
@@ -424,11 +416,10 @@ function shimInit(options: ShimInitOptions = null) {
 		return newBody.join('\n\n');
 	};
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
-	shim.attachFileToNote = async function(note, filePath, position: number = null, options: any = null) {
+	shim.attachFileToNote = async function(note, filePath, options = {}) {
 		if (!options) options = {};
 		if (note.markup_language) options.markupLanguage = note.markup_language;
-		const newBody = await shim.attachFileToNoteBody(note.body, filePath, position, options);
+		const newBody = await shim.attachFileToNoteBody(note.body, filePath, options.position ?? 0, options);
 		if (!newBody) return null;
 
 		const newNote = { ...note, body: newBody };
@@ -600,6 +591,7 @@ function shimInit(options: ShimInitOptions = null) {
 						cleanUpOnError(error);
 					});
 
+					const requestStart = new Date();
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 					const request = http.request(requestOptions, (response: any) => {
 
@@ -639,7 +631,10 @@ function shimInit(options: ShimInitOptions = null) {
 					});
 
 					request.on('timeout', () => {
-						request.destroy(new Error(`Request timed out. Timeout value: ${requestOptions.timeout}ms.`));
+						// We choose to not destroy the request when a timeout value is not specified to keep
+						// the behavior we had before the addition of this event handler.
+						if (!requestOptions.timeout) return;
+						request.destroy(new Error(`Request timed out. Timeout value: ${requestOptions.timeout}ms. Actual connection time: ${new Date().getTime() - requestStart.getTime()}ms`));
 					});
 
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -781,7 +776,13 @@ function shimInit(options: ShimInitOptions = null) {
 	};
 
 	const loadPdf = async (path: string) => {
-		const loadingTask = pdfJs.getDocument(path);
+		const loadingTask = pdfJs.getDocument({
+			url: path,
+			// https://github.com/mozilla/pdf.js/issues/4244#issuecomment-1479534301
+			useSystemFonts: true,
+			// IMPORTANT: Set to false to mitigate CVE-2024-4367.
+			isEvalSupported: false,
+		});
 		return await loadingTask.promise;
 	};
 

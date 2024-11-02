@@ -10,7 +10,7 @@ import RevisionService from '@joplin/lib/services/RevisionService';
 import { MarkupToHtml } from '@joplin/renderer';
 import time from '@joplin/lib/time';
 import bridge from '../services/bridge';
-import markupLanguageUtils from '../utils/markupLanguageUtils';
+import markupLanguageUtils from '@joplin/lib/utils/markupLanguageUtils';
 import { NoteEntity, RevisionEntity } from '@joplin/lib/services/database/types';
 import { AppState } from '../app.reducer';
 const urlUtils = require('@joplin/lib/urlUtils');
@@ -140,7 +140,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		const theme = themeStyle(this.props.themeId);
 
 		const markupToHtml = markupLanguageUtils.newMarkupToHtml({}, {
-			resourceBaseUrl: `file://${Setting.value('resourceDir')}/`,
+			resourceBaseUrl: `joplin-content://note-viewer/${Setting.value('resourceDir')}/`,
 			customCss: this.props.customCss ? this.props.customCss : '',
 		});
 
@@ -150,7 +150,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 			postMessageSyntax: 'ipcProxySendToHost',
 		});
 
-		this.viewerRef_.current.send('setHtml', result.html, {
+		this.viewerRef_.current.setHtml(result.html, {
 			// cssFiles: result.cssFiles,
 			pluginAssets: result.pluginAssets,
 		});

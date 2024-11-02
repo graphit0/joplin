@@ -28,6 +28,7 @@ export default class HtmlToMd {
 			bulletListMarker: '-',
 			emDelimiter: '*',
 			strongDelimiter: '**',
+			allowResourcePlaceholders: true,
 
 			// If soft-breaks are enabled, lines need to end with two or more spaces for
 			// trailing <br/>s to render. See
@@ -44,6 +45,15 @@ export default class HtmlToMd {
 				if (node.matches('object')) {
 					return pdfRule.replacement(content, node, {});
 				}
+
+				if (node.isCode) {
+					// Fix: Web clipper has trouble with code blocks on Joplin's website.
+					// See https://github.com/laurent22/joplin/pull/10126#issuecomment-2016523281 .
+					// If isCode, blank keep empty
+					// test case: packages/app-cli/tests/html_to_md/code_multiline_3.html
+					return '';
+				}
+
 				return '\n\n';
 			};
 		}

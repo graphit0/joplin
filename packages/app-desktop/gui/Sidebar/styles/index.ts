@@ -49,22 +49,6 @@ export const StyledHeaderLabel = styled.span`
 	font-weight: bold;
 `;
 
-export const StyledListItem = styled.div`
-	box-sizing: border-box;
-	height: 30px;
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding-left: ${(props: StyleProps) => props.theme.mainPadding + ('depth' in props ? props.depth : 0) * 16}px;
-	background: ${(props: StyleProps) => props.selected ? props.theme.selectedColor2 : 'none'};
-	/*text-transform: ${(props: StyleProps) => props.isSpecialItem ? 'uppercase' : 'none'};*/
-	transition: 0.1s;
-
-	&:hover {
-		background-color: ${(props: StyleProps) => props.theme.backgroundColorHover2};
-	}
-`;
-
 function listItemTextColor(props: StyleProps) {
 	if (props.isConflictFolder) return props.theme.colorError2;
 	if (props.isSpecialItem) return props.theme.colorFaded2;
@@ -84,30 +68,15 @@ export const StyledListItemAnchor = styled.a`
 	align-items: center;
 	user-select: none;
 	height: 100%;
+
+	/* A different background color is already used to indicate focus for sidebar list items. */
+	&:focus-visible {
+		outline: none;
+	}
 `;
 
 export const StyledShareIcon = styled.i`
 	margin-left: 8px;
-`;
-
-export const StyledExpandLink = styled.a`
-	color: ${(props: StyleProps) => props.theme.color2};
-	cursor: default;
-	opacity: 0.8;
-	text-decoration: none;
-	padding-right: 8px;
-	display: flex;
-	align-items: center;
-	width: 16px;
-	max-width: 16px;
-	min-width: 16px;
-	height: 100%;
-`;
-
-export const StyledNoteCount = styled.div`
-	color: ${(props: StyleProps) => props.theme.colorFaded2};
-	padding-left: 8px;
-	user-select: none;
 `;
 
 export const StyledSynchronizeButton = styled(Button)`
