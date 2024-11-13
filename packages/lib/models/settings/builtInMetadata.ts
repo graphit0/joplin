@@ -658,6 +658,16 @@ const builtInMetadata = (Setting: typeof SettingType) => {
 			storage: SettingStorage.File,
 			isGlobal: true,
 		},
+		'editor.pastePreserveColors': {
+			value: false,
+			type: SettingItemType.Bool,
+			public: true,
+			section: 'note',
+			appTypes: [AppType.Desktop],
+			label: () => _('Preserve colours when pasting text in Rich Text Editor'),
+			storage: SettingStorage.File,
+			isGlobal: true,
+		},
 		'notes.columns': {
 			value: defaultListColumns(),
 			public: false,
@@ -916,6 +926,12 @@ const builtInMetadata = (Setting: typeof SettingType) => {
 			storage: SettingStorage.File,
 		},
 
+		'plugins.shownEditorViewIds': {
+			value: [] as string[],
+			type: SettingItemType.Array,
+			public: false,
+		},
+
 		// Deprecated - use markdown.plugin.*
 		'markdown.softbreaks': { storage: SettingStorage.File, isGlobal: true, value: false, type: SettingItemType.Bool, public: false, appTypes: [AppType.Mobile, AppType.Desktop] },
 		'markdown.typographer': { storage: SettingStorage.File, isGlobal: true, value: false, type: SettingItemType.Bool, public: false, appTypes: [AppType.Mobile, AppType.Desktop] },
@@ -942,6 +958,18 @@ const builtInMetadata = (Setting: typeof SettingType) => {
 		'markdown.plugin.emoji': { storage: SettingStorage.File, isGlobal: true, value: false, type: SettingItemType.Bool, section: 'markdownPlugins', public: true, appTypes: [AppType.Mobile, AppType.Desktop], label: () => `${_('Enable markdown emoji')}${wysiwygNo}` },
 		'markdown.plugin.insert': { storage: SettingStorage.File, isGlobal: true, value: false, type: SettingItemType.Bool, section: 'markdownPlugins', public: true, appTypes: [AppType.Mobile, AppType.Desktop], label: () => `${_('Enable ++insert++ syntax')}${wysiwygYes}` },
 		'markdown.plugin.multitable': { storage: SettingStorage.File, isGlobal: true, value: false, type: SettingItemType.Bool, section: 'markdownPlugins', public: true, appTypes: [AppType.Mobile, AppType.Desktop], label: () => `${_('Enable multimarkdown table extension')}${wysiwygNo}` },
+
+		// For now, applies only to the Markdown viewer
+		'renderer.fileUrls': {
+			storage: SettingStorage.File,
+			isGlobal: true,
+			value: false,
+			type: SettingItemType.Bool,
+			section: 'markdownPlugins',
+			public: true,
+			appTypes: [AppType.Desktop],
+			label: () => `${_('Enable file:// URLs for images and videos')}${wysiwygYes}`,
+		},
 
 		// Tray icon (called AppIndicator) doesn't work in Ubuntu
 		// http://www.webupd8.org/2017/04/fix-appindicator-not-working-for.html
@@ -1582,15 +1610,18 @@ const builtInMetadata = (Setting: typeof SettingType) => {
 			isGlobal: true,
 		},
 
-		'featureFlag.syncLockEnabled': {
-			value: true,
+		'featureFlag.linuxKeychain': {
+			value: false,
 			type: SettingItemType.Bool,
 			public: true,
 			storage: SettingStorage.File,
-			label: () => 'Enable sync locks',
-			description: () => 'This is an experimental setting to disable sync locks',
-			section: 'sync',
+			appTypes: [AppType.Desktop],
+			label: () => 'Enable keychain support',
+			description: () => 'This is an experimental setting to enable keychain support on Linux',
+			show: () => shim.isLinux(),
+			section: 'general',
 			isGlobal: true,
+			advanced: true,
 		},
 
 

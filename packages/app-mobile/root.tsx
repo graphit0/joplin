@@ -35,6 +35,7 @@ const DropdownAlert = require('react-native-dropdownalert').default;
 const AlarmServiceDriver = require('./services/AlarmServiceDriver').default;
 const SafeAreaView = require('./components/SafeAreaView');
 const { connect, Provider } = require('react-redux');
+import fastDeepEqual = require('fast-deep-equal');
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import BackButtonService from './services/BackButtonService';
 import NavService from '@joplin/lib/services/NavService';
@@ -87,6 +88,8 @@ import { isCallbackUrl, parseCallbackUrl, CallbackUrlCommand } from '@joplin/lib
 import JoplinCloudLoginScreen from './components/screens/JoplinCloudLoginScreen';
 
 import SyncTargetNone from '@joplin/lib/SyncTargetNone';
+
+
 
 SyncTargetRegistry.addClass(SyncTargetNone);
 SyncTargetRegistry.addClass(SyncTargetOneDrive);
@@ -301,12 +304,27 @@ const appReducer = (state = appDefaultState, action: any) => {
 				const currentRoute = state.route;
 
 				if (!historyGoingBack && historyCanGoBackTo(currentRoute)) {
-					navHistory.push(currentRoute);
+					const previousRoute = navHistory.length && navHistory[navHistory.length - 1];
+					const isDifferentRoute = !previousRoute || !fastDeepEqual(navHistory[navHistory.length - 1], currentRoute);
+
+					// Avoid multiple consecutive duplicate screens in the navigation history -- these can make
+					// pressing "back" seem to have no effect.
+					if (isDifferentRoute) {
+						navHistory.push(currentRoute);
+					}
+				}
+
+				if (action.clearHistory) {
+					navHistory.splice(0, navHistory.length);
 				}
 
 				newState = { ...state };
 
 				newState.selectedNoteHash = '';
+
+				if (action.routeName === 'Search') {
+					newState.notesParentType = 'Search';
+				}
 
 				if ('noteId' in action) {
 					newState.selectedNoteIds = action.noteId ? [action.noteId] : [];
@@ -344,6 +362,8 @@ const appReducer = (state = appDefaultState, action: any) => {
 
 				newState.route = action;
 				newState.historyCanGoBack = !!navHistory.length;
+
+				logger.debug('Navigated to route:', newState.route?.routeName, 'with notesParentType:', newState.notesParentType);
 			}
 			break;
 

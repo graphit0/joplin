@@ -1,12 +1,13 @@
 import AsyncActionQueue from '@joplin/lib/AsyncActionQueue';
 import { ToolbarButtonInfo } from '@joplin/lib/services/commands/ToolbarButtonUtils';
-import { PluginStates } from '@joplin/lib/services/plugins/reducer';
+import { PluginHtmlContents, PluginStates } from '@joplin/lib/services/plugins/reducer';
 import { MarkupLanguage } from '@joplin/renderer';
 import { RenderResult, RenderResultPluginAsset } from '@joplin/renderer/types';
 import { Dispatch } from 'redux';
 import { ProcessResultsRow } from '@joplin/lib/services/search/SearchEngine';
 import { DropHandler } from './useDropHandler';
 import { SearchMarkers } from './useSearchMarkers';
+import { ParseOptions } from '@joplin/lib/HtmlToMd';
 
 export interface AllAssetsOptions {
 	contentMaxWidthTarget?: string;
@@ -30,9 +31,6 @@ export interface NoteEditorProps {
 	isProvisional: boolean;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	editorNoteStatuses: any;
-	syncStarted: boolean;
-	decryptionStarted: boolean;
-	bodyEditor: string;
 	notesParentType: string;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	selectedNoteTags: any[];
@@ -57,6 +55,11 @@ export interface NoteEditorProps {
 	shareCacheSetting: string;
 	syncUserId: string;
 	searchResults: ProcessResultsRow[];
+	pluginHtmlContents: PluginHtmlContents;
+	'plugins.shownEditorViewIds': string[];
+	onTitleChange?: (title: string)=> void;
+	bodyEditor: string;
+	startupPluginsLoaded: boolean;
 }
 
 export interface NoteBodyEditorRef {
@@ -85,7 +88,7 @@ export interface MarkupToHtmlOptions {
 }
 
 export type MarkupToHtmlHandler = (markupLanguage: MarkupLanguage, markup: string, options: MarkupToHtmlOptions)=> Promise<RenderResult>;
-export type HtmlToMarkdownHandler = (markupLanguage: number, html: string, originalCss: string)=> Promise<string>;
+export type HtmlToMarkdownHandler = (markupLanguage: number, html: string, originalCss: string, parseOptions?: ParseOptions)=> Promise<string>;
 
 export interface NoteBodyEditorProps {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
@@ -252,3 +255,19 @@ export interface CommandValue {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	value?: any; // For TinyMCE only
 }
+
+type DropCommandBase = {
+	pos: {
+		clientX: number;
+		clientY: number;
+	}|undefined;
+};
+
+export type DropCommandValue = ({
+	type: 'notes';
+	markdownTags: string[];
+}|{
+	type: 'files';
+	paths: string[];
+	createFileURL: boolean;
+}) & DropCommandBase;
