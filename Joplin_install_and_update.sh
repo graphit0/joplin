@@ -214,7 +214,7 @@ else
 
   # If appimage extraction fails, proceed with original appimage but ask the user to retry extraction
   extractionCheck() { 
-   if [[ ! -d ~/.joplin/squashfs-root ]]; then
+   if [[ ! -d "${INSTALL_DIR}/squashfs-root" ]]; then
    echo 'AppImage extraction failed, proceeding using AppImage in 10 sec'
    echo 'However, would you like to retry extraction once more?'
    read -t 10 -n 1 -r -p "Retry? [Y/n] "
@@ -235,7 +235,7 @@ else
      # if it's more prefferable, uncomment next line
      exit 1
     else echo 'Proceeding to use original AppImage'
-    BINARY_PATH=/.joplin/Joplin.AppImage
+    BINARY_PATH="${INSTALL_DIR}/Joplin.AppImage"
     fi
    else echo 'Extraction of AppImage is complete'
   fi
