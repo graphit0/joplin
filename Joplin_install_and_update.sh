@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# TODO:
+# - test gracious fail on extraction by limiting the storage or/and permissions line 206+
+# - use both appimage and extracted binary to check if programm is running and ask permission to close it line 190+. 
+#   - Also decide whether it's needed at all
+
 set -e
 
 trap 'handleError' ERR
@@ -28,6 +33,7 @@ SILENT=false
 ALLOW_ROOT=false
 SHOW_CHANGELOG=false
 INCLUDE_PRE_RELEASE=false
+USE_APPIMAGE=false
 INSTALL_DIR="${HOME}/.joplin"   # default installation directory
 
 print() {
@@ -58,6 +64,7 @@ showHelp() {
   print "\t" "--force" "\t" "Always download the latest version"
   print "\t" "--silent" "\t" "Don't print any output"
   print "\t" "--prerelease" "\t" "Check for new Versions including Pre-Releases"
+  print "\t" "--appimage" "\t" "Use AppImage instead of extracted binary"
   print "\t" "--install-dir" "\t" "Set installation directory; default: \"${INSTALL_DIR}\""
 
   if [[ ! -z $1 ]]; then
@@ -86,6 +93,7 @@ while getopts "${optspec}" OPT; do
     force )        FORCE=true ;;
     changelog )    SHOW_CHANGELOG=true ;;
     prerelease )   INCLUDE_PRE_RELEASE=true ;;
+    appimage )     USE_APPIMAGE=true ;;
     install-dir )  INSTALL_DIR="$OPTARG" ;;
     [^\?]* )       showHelp "Illegal option --${OPT}"; exit 2 ;;
     \? )           showHelp "Illegal option -${OPTARG}"; exit 2 ;;
@@ -156,7 +164,7 @@ fi
 
 # Check if it's an update or a new install
 DOWNLOAD_TYPE="New"
-if [[ -f "${INSTALL_DIR}/Joplin.AppImage" ]]; then
+if [[ -d "${INSTALL_DIR}/" ]]; then
   DOWNLOAD_TYPE="Update"
 fi
 
@@ -169,7 +177,7 @@ wget -O "${TEMP_DIR}/joplin.png" https://joplinapp.org/images/Icon512.png
 #-----------------------------------------------------
 print 'Installing Joplin...'
 # Delete previous version (in future versions joplin.desktop shouldn't exist)
-rm -f "${INSTALL_DIR}"/*.AppImage ~/.local/share/applications/joplin.desktop "${INSTALL_DIR}/VERSION"
+rm -rf "${INSTALL_DIR}"/* ~/.local/share/applications/joplin.desktop "${INSTALL_DIR}/VERSION"
 
 # Creates the folder where the binary will be stored
 mkdir -p "${INSTALL_DIR}/"
@@ -179,6 +187,63 @@ mv "${TEMP_DIR}/Joplin.AppImage" "${INSTALL_DIR}/Joplin.AppImage"
 
 # Gives execution privileges
 chmod +x "${INSTALL_DIR}/Joplin.AppImage"
+
+if [ "${USE_APPIMAGE}" == true ]; then
+  BINARY_PATH="${INSTALL_DIR}/Joplin.AppImage"
+else
+  # checking if Joplin is running and ask permission to close it
+  if [[ -z $(pgrep -f "${BINARY_PATH}") ]]; then
+  echo "Joplin is running, close it?"
+    read -r -p "Press Y to continue: " response
+      if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]
+    then
+      pkill -f "${BINARY_PATH}"
+    else
+      exit 1
+    fi
+  fi
+  # Extracts appimage in resulting folder 
+  echo 'Extracting appimage'
+  cd "${INSTALL_DIR}"/ && ./Joplin.AppImage --appimage-extract > /dev/null
+
+  # Gracious extraction fail
+  # gotta decide whether to use recursion (L223) or just quit after first retry
+  # to complete: 
+  # - clean up on fail
+  # - test gracious fail
+
+  # If appimage extraction fails, proceed with original appimage but ask the user to retry extraction
+  extractionCheck() { 
+   if [[ ! -d ~/.joplin/squashfs-root ]]; then
+   echo 'AppImage extraction failed, proceeding using AppImage in 10 sec'
+   echo 'However, would you like to retry extraction once more?'
+   read -t 10 -n 1 -r -p "Retry? [Y/n] "
+   echo    # move to a new line
+   # Visualizing countdown
+   for (( i=10; i>0; i-- )); do
+     echo -ne "${COLOR_YELLOW}$i${COLOR_RESET} \r"
+     sleep 1
+   done
+   echo -ne "\r"
+   
+    if [[ $REPLY =~ ^[Yy]$ ]] ;  then 
+     ./Joplin.AppImage --appimage-extract > /dev/null
+     # dirty hack: calls itself on fail to avoid complex logic of retrial for minor and unproven feature of extraction
+     # retries the function from the beginning 
+     # retryOnFail() { extractionCheck() && echo "success" || (echo "fail" && retryOnFail) }
+     # alternatively we can simply exit the script to avoid multriple retrials
+     # if it's more prefferable, uncomment next line
+     exit 1
+    else echo 'Proceeding to use original AppImage'
+    BINARY_PATH=/.joplin/Joplin.AppImage
+    fi
+   else echo 'Extraction of AppImage is complete'
+  fi
+  }
+  # Cleanup: Removes unused appimage and extracted folder
+  mv squashfs-root/* ./ && rm -rf squashfs-root && rm -rf Joplin.AppImage
+  BINARY_PATH="${INSTALL_DIR}"/@joplinapp-desktop
+fi
 
 print "${COLOR_GREEN}OK${COLOR_RESET}"
 
@@ -257,7 +322,7 @@ if [[ $DESKTOP =~ .*gnome.*|.*kde.*|.*xfce.*|.*mate.*|.*lxqt.*|.*unity.*|.*x-cin
 Encoding=UTF-8
 Name=Joplin
 Comment=Joplin for Desktop
-Exec=env APPIMAGELAUNCHER_DISABLE=TRUE "${INSTALL_DIR}/Joplin.AppImage" ${SANDBOXPARAM} %u
+Exec=env APPIMAGELAUNCHER_DISABLE=TRUE ${BINARY_PATH} ${SANDBOXPARAM} %u
 Icon=joplin
 StartupWMClass=Joplin
 Type=Application
