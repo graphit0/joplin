@@ -43,7 +43,7 @@ Then you can test the various applications:
 	cd packages/app-desktop
 	yarn start
 
-You can also run it under WSL 2. To do so, [follow these instructions](https://www.beekeeperstudio.io/blog/building-electron-windows-ubuntu-wsl2) to setup your environment.
+Use the regular Command Prompt to develop in Windows. We [do not recommend using WSL for this](https://github.com/laurent22/joplin/blob/dev/readme/dev/build_troubleshooting.md#other-issues) and we do not support this use case.
 
 ## Testing the Terminal application
 
@@ -103,6 +103,8 @@ To make changes to the application, you'll need to rebuild any TypeScript file y
 	yarn watch
 
 Running `yarn tsc` would have the same effect, but without watching.
+
+**Mobile-specific note**: If making changes to the note editor, viewer, or other WebView content, run `yarn watchInjectedJs` from `packages/app-mobile` to rebuild the WebView JavaScript files on change.
 
 ## Running an application with additional parameters
 

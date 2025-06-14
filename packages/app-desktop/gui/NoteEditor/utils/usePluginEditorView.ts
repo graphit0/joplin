@@ -1,15 +1,13 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { PluginStates } from '@joplin/lib/services/plugins/reducer';
-import getActivePluginEditorView from '@joplin/lib/services/plugins/utils/getActivePluginEditorView';
+import getShownPluginEditorView from '@joplin/lib/services/plugins/utils/getShownPluginEditorView';
+import { WindowIdContext } from '../../NewWindowOrIFrame';
 
 // If a plugin editor should be shown for the current note, this function will return the plugin and
 // associated view.
-export default (plugins: PluginStates, shownEditorViewIds: string[]) => {
+export default (plugins: PluginStates) => {
+	const windowId = useContext(WindowIdContext);
 	return useMemo(() => {
-		const { editorPlugin, editorView } = getActivePluginEditorView(plugins);
-		if (editorView) {
-			if (!shownEditorViewIds.includes(editorView.id)) return { editorPlugin: null, editorView: null };
-		}
-		return { editorPlugin, editorView };
-	}, [plugins, shownEditorViewIds]);
+		return getShownPluginEditorView(plugins, windowId);
+	}, [plugins, windowId]);
 };

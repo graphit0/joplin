@@ -118,6 +118,8 @@ const NoteList = (props: Props) => {
 		props.notes.length,
 		listRenderer.flow,
 		itemsPerLine,
+		props.showCompletedTodos,
+		props.uncompletedTodosOnTop,
 	);
 
 	useItemCss(listRenderer.itemCss);
@@ -224,7 +226,7 @@ const NoteList = (props: Props) => {
 			output.push(
 				<NoteListItem
 					key={note.id}
-					ref={el => itemRefs.current[note.id] = el}
+					ref={el => { itemRefs.current[note.id] = el; }}
 					index={i}
 					dragIndex={dragOverTargetNoteIndex}
 					noteCount={props.notes.length}
